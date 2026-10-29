@@ -108,19 +108,29 @@ async function main() {
         projectName = await askProjectName();
       }
 
-      const stackAnswers = await askStackQuestions();
+      // Loop so that backing out of the custom wizard ("← Back") returns to
+      // the stack chooser instead of cancelling the whole CLI.
+      while (true) {
+        const stackAnswers = await askStackQuestions();
 
-      if (stackAnswers.stack === "custom") {
-        // ── Custom Stack Flow ──
-        console.log(chalk.gray("\n── Customise your tech stack ──\n"));
-        const customConfig = await gatherCustomConfig();
-        packageManager = (await askPackageManager()).packageManager;
-        config = { stack: "custom", ...customConfig, projectName, packageManager };
-      } else {
-        // ── Preset Stack Flow ──
-        const runtimeAnswers = await askRuntimeEnvironment();
-        packageManager = (await askPackageManager()).packageManager;
-        config = { ...stackAnswers, ...runtimeAnswers, projectName, packageManager };
+        if (stackAnswers.stack === "custom") {
+          // ── Custom Stack Flow ──
+          console.log(chalk.gray("\n── Customise your tech stack ──\n"));
+          const customConfig = await gatherCustomConfig();
+          if (!customConfig) {
+            // User pressed "← Back" inside the wizard — pick a stack again.
+            continue;
+          }
+          packageManager = (await askPackageManager()).packageManager;
+          config = { stack: "custom", ...customConfig, projectName, packageManager };
+        } else {
+          // ── Preset Stack Flow ──
+          const runtimeAnswers = await askRuntimeEnvironment();
+          packageManager = (await askPackageManager()).packageManager;
+          config = { ...stackAnswers, ...runtimeAnswers, projectName, packageManager };
+        }
+
+        break;
       }
     }
 

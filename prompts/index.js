@@ -18,6 +18,9 @@ import {
 
 const TOTAL_STEPS = 10;
 
+// Sentinel returned when the user backs out of the custom wizard from step 1.
+const BACK = "__back__";
+
 /**
  * Builds a dim step label like "[3/10]" for prompt prefixes.
  *
@@ -97,8 +100,15 @@ export async function gatherCustomConfig() {
   // This outer loop allows the user to re-do selections if they reject
   // the confirmation prompt.
   while (true) {
-    // 1. Language
-    const { language } = await askLanguage(step(1));
+    // 1. Language (with a "← Back" escape hatch to the stack chooser)
+    const { language } = await askLanguage(step(1), {
+      backValue: BACK,
+      backLabel: "Back to stack selection",
+    });
+    if (language === BACK) {
+      // Caller (index.js) re-runs stack selection when this returns null.
+      return null;
+    }
 
     // 2. Frontend
     const { frontend } = await askFrontend(step(2));
